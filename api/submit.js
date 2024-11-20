@@ -9,7 +9,7 @@ import {
   KIDS_LIKES,
   USER_ACTIVITIES,
   ACTIVITIES,
-} from "../utils/schem";
+} from "../utils/schema";
 import { eq, and } from "drizzle-orm";
 
 export async function POST(req) {
