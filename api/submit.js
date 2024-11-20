@@ -33,7 +33,7 @@ import mysql from "mysql2/promise";
 
 import { eq } from "drizzle-orm";
 
-export async function POST(req) {
+export async function GET() {
     try {
       const  age  = 5;
       if (!age) {
