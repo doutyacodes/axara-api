@@ -13,36 +13,36 @@ import {
 import { eq, and } from "drizzle-orm";
 
 export async function POST(req) {
-//   const authResult = await authenticate(req, true);
-//   if (!authResult.authenticated) {
-//     return new Response(JSON.stringify(authResult.response), {
-//       status: authResult.response?.status || 401,
-//     });
-//   }
-
-//   const userId = authResult.decoded_Data.id;
+  // Temporary hardcoded userId for testing
   const userId = 2;
-  const { age } = await req.json();
-
-  if (!age) {
-    return new Response(
-      JSON.stringify({ error: "Age is required." }),
-      { status: 400 }
-    );
-  }
-
-  const existing_kids_community = await db
-    .select()
-    .from(KIDS_COMMUNITY)
-    .where(eq(KIDS_COMMUNITY.age, age))
-    .execute();
-
-  let community_id = null;
-  if (existing_kids_community.length > 0) {
-    community_id = existing_kids_community[0].id;
-  }
 
   try {
+    // Parse request body for 'age'
+    const { age } = await req.json();
+
+    if (!age) {
+      return new Response(
+        JSON.stringify({ error: "Age is required." }),
+        { status: 400 }
+      );
+    }
+
+    // Check if the community exists for the given age
+    const existing_kids_community = await db
+      .select()
+      .from(KIDS_COMMUNITY)
+      .where(eq(KIDS_COMMUNITY.age, age))
+      .execute();
+
+    let community_id = existing_kids_community.length > 0 ? existing_kids_community[0].id : null;
+
+    if (!community_id) {
+      return new Response(
+        JSON.stringify({ error: "No community found for the given age." }),
+        { status: 404 }
+      );
+    }
+
     // Fetch news with category name included
     const news = await db
       .select({
@@ -59,8 +59,7 @@ export async function POST(req) {
       .where(eq(NEWS.age, age))
       .execute();
 
-    let postsWithLikesAndComments = null;
-
+    // Fetch posts with associated user and child data
     const postsWithUserAndChild = await db
       .select({
         postId: KIDS_POSTS.id,
@@ -75,7 +74,6 @@ export async function POST(req) {
         slug: KIDS_POSTS.slug,
         childname: CHILDREN.name,
         gender: CHILDREN.gender,
-        activity_id: KIDS_POSTS.activity_id,
         image: USER_ACTIVITIES.image,
       })
       .from(KIDS_POSTS)
@@ -85,14 +83,17 @@ export async function POST(req) {
       .leftJoin(
         USER_ACTIVITIES,
         and(
-          eq(KIDS_POSTS.activity_id, USER_ACTIVITIES.activity_id), // match activity_id
-          eq(KIDS_POSTS.child_id, USER_ACTIVITIES.child_id) // match child_id
+          eq(KIDS_POSTS.activity_id, USER_ACTIVITIES.activity_id),
+          eq(KIDS_POSTS.child_id, USER_ACTIVITIES.child_id)
         )
       )
       .where(eq(KIDS_POSTS.community_id, community_id))
       .execute();
 
+    let postsWithLikesAndComments = null;
+
     if (userId) {
+      // If userId is available, check if the user liked any of the posts
       postsWithLikesAndComments = await Promise.all(
         postsWithUserAndChild.map(async (post) => {
           const [like] = await db
@@ -108,7 +109,7 @@ export async function POST(req) {
 
           return {
             ...post,
-            likedByUser: !!like,
+            likedByUser: !!like, // Boolean to indicate if the user liked the post
           };
         })
       );
@@ -119,6 +120,7 @@ export async function POST(req) {
       }));
     }
 
+    // Return the fetched news and posts data
     return new Response(
       JSON.stringify({
         news,
@@ -127,9 +129,11 @@ export async function POST(req) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error fetching news or categories:", error);
+    console.error("Error during POST request:", error);
+
+    // Return a generic error message with status 500
     return new Response(
-      JSON.stringify({ error: "Failed to fetch news data." }),
+      JSON.stringify({ error: `Failed to fetch data: ${error.message || error}` }),
       { status: 500 }
     );
   }
