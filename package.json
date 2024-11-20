@@ -8,5 +8,12 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": ""
+  "description": "",
+  "dependencies": {
+    "drizzle-orm": "^0.36.3",
+    "mysql2": "^3.11.4"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.28.1"
+  }
 }
