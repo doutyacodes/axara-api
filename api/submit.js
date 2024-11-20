@@ -12,7 +12,7 @@ import {
 } from "../utils/schema";
 import { eq, and } from "drizzle-orm";
 
-export async function POST(req) {
+export async function GET() {
   // Temporary hardcoded userId for testing
   const userId = 2;
 
